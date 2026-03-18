@@ -221,12 +221,15 @@ function AddMealForm({ mealType, date, onClose, onSuccess }) {
   )
 }
 
-function FoodSearchTab({ selectedDate, qc }) {
+function FoodSearchTab() {
   const [query, setQuery] = useState('')
+  const [showSubmit, setShowSubmit] = useState(false)
+  const debouncedQuery = useDebounce(query)
+
   const { data: foods, isFetching } = useQuery({
-    queryKey: ['food-search', query],
-    queryFn: () => query.length > 1 ? api.get(`/nutrition/foods/?search=${query}`).then(r => r.data) : Promise.resolve([]),
-    enabled: query.length > 1,
+    queryKey: ['food-search', debouncedQuery],
+    queryFn: () => api.get(`/nutrition/foods/?search=${debouncedQuery}`).then(r => r.data),
+    staleTime: 60000,
   })
 
   return (
@@ -250,6 +253,97 @@ function FoodSearchTab({ selectedDate, qc }) {
           </div>
         </div>
       ))}
+
+      {/* Submit missing food */}
+      <div className="mt-6 bg-gray-900 border border-orange-500/30 rounded-2xl p-5 text-center">
+        <p className="text-gray-300 text-sm mb-3">
+          Is your product missing? Feel free to add it to our list —{' '}
+          <span className="text-orange-400 font-semibold">together we grow stronger!</span> 💪
+        </p>
+        <button
+          onClick={() => setShowSubmit(true)}
+          className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+        >
+          + Add Missing Food
+        </button>
+      </div>
+
+      {showSubmit && <SubmitFoodForm onClose={() => setShowSubmit(false)} />}
+    </div>
+  )
+}
+
+function SubmitFoodForm({ onClose }) {
+  const [form, setForm] = useState({
+    name: '', brand: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', sugars: ''
+  })
+  const [success, setSuccess] = useState(false)
+
+  const mutation = useMutation({
+    mutationFn: () => api.post('/nutrition/foods/submit/', {
+      name: form.name,
+      brand: form.brand,
+      calories: Number(form.calories),
+      protein: Number(form.protein),
+      carbs: Number(form.carbs),
+      fat: Number(form.fat),
+      fiber: Number(form.fiber) || 0,
+      sugars: Number(form.sugars) || 0,
+    }),
+    onSuccess: () => setSuccess(true),
+  })
+
+  const fields = [
+    ['name', 'Food Name *', 'text'],
+    ['brand', 'Brand (optional)', 'text'],
+    ['calories', 'Calories (kcal) *', 'number'],
+    ['protein', 'Protein (g) *', 'number'],
+    ['carbs', 'Carbs (g) *', 'number'],
+    ['fat', 'Fat (g) *', 'number'],
+    ['fiber', 'Fiber (g)', 'number'],
+    ['sugars', 'Sugars (g)', 'number'],
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800 max-h-[90vh] overflow-y-auto">
+        {success ? (
+          <div className="text-center py-6">
+            <p className="text-4xl mb-3">💪</p>
+            <p className="text-white font-bold text-lg mb-1">Thank you!</p>
+            <p className="text-gray-400 text-sm mb-4">Your food has been submitted and will be reviewed soon.</p>
+            <button onClick={onClose} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">Close</button>
+          </div>
+        ) : (
+          <>
+            <h3 className="text-lg font-bold text-white mb-1">Add Missing Food</h3>
+            <p className="text-gray-400 text-xs mb-4">All values are per 100g</p>
+            <div className="grid grid-cols-2 gap-3">
+              {fields.map(([key, label, type]) => (
+                <div key={key} className={key === 'name' || key === 'brand' ? 'col-span-2' : ''}>
+                  <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                  <input
+                    type={type}
+                    value={form[key]}
+                    onChange={e => setForm({ ...form, [key]: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={onClose} className="flex-1 bg-gray-800 text-gray-300 py-2 rounded-lg hover:bg-gray-700">Cancel</button>
+              <button
+                onClick={() => mutation.mutate()}
+                disabled={!form.name || !form.calories || mutation.isPending}
+                className="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 disabled:opacity-40"
+              >
+                {mutation.isPending ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
