@@ -7,14 +7,18 @@ const today = new Date().toISOString().split('T')[0]
 
 function MacroBar({ label, value, max, color }) {
   const pct = max ? Math.min((value / max) * 100, 100) : 0
+  const over = max && value > max
   return (
     <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-medium">{value}g</span>
+      <div className="flex justify-between items-baseline mb-1.5">
+        <span className="text-ink-500 text-xs">{label}</span>
+        <span className="text-xs">
+          <span className={`font-medium ${over ? 'text-red-400' : 'text-ink-900'}`}>{value}g</span>
+          {max > 0 && <span className="text-ink-300"> / {max}g</span>}
+        </span>
       </div>
-      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      <div className="h-2 bg-cream-200 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${over ? 'bg-red-400' : color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -44,85 +48,88 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">
-          Good {getGreeting()}, {user?.username} 👋
+        <h2 className="text-2xl font-display tracking-wide text-ink-900">
+          Good {getGreeting()}, {user?.username}
         </h2>
-        <p className="text-gray-400 text-sm mt-1">{new Date().toDateString()}</p>
+        <p className="text-ink-500 text-sm mt-0.5">{new Date().toDateString()}</p>
       </div>
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Total Workouts" value={stats?.total_sessions ?? '—'} icon="💪" />
-        <StatCard label="Total Volume" value={stats?.total_volume ? `${Math.round(stats.total_volume).toLocaleString()} kg` : '—'} icon="🏋️" />
-        <StatCard label="Goal" value={user?.goal ?? '—'} icon="🎯" capitalize />
+        <StatCard label="Total Workouts" value={stats?.total_sessions ?? '—'} accent="bg-teal-500" />
+        <StatCard label="Total Volume" value={stats?.total_volume ? `${Math.round(stats.total_volume).toLocaleString()} kg` : '—'} accent="bg-navy-900" />
+        <StatCard label="Goal" value={user?.goal ?? '—'} capitalize accent="bg-cream-400" />
       </div>
 
       {/* Calories */}
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Today's Calories</h3>
-          <Link to="/nutrition" className="text-sm text-orange-400 hover:underline">Log food →</Link>
+      <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-display tracking-wide text-ink-900">TODAY'S CALORIES</h3>
+          <Link to="/nutrition" className="text-xs text-teal-500 hover:text-teal-600 font-medium">Log food →</Link>
         </div>
-        <div className="flex items-end gap-3 mb-3">
-          <span className="text-4xl font-bold text-white">{Math.round(calories)}</span>
-          {tdee > 0 && <span className="text-gray-400 mb-1">/ {tdee} kcal target</span>}
+        <div className="flex items-end gap-3 mb-4">
+          <span className="text-5xl font-display text-ink-900">{Math.round(calories)}</span>
+          {tdee > 0 && <span className="text-ink-500 text-sm mb-1.5">/ {tdee} kcal target</span>}
         </div>
-        <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-cream-200 rounded-full overflow-hidden mb-1">
           <div
-            className={`h-full rounded-full transition-all ${calPct >= 100 ? 'bg-red-500' : 'bg-orange-500'}`}
+            className={`h-full rounded-full ${calPct >= 100 ? 'bg-red-400' : 'bg-teal-500'}`}
             style={{ width: `${calPct}%` }}
           />
         </div>
-        {summary && (
-          <div className="grid grid-cols-3 gap-4 mt-5">
-            <MacroBar label="Protein" value={Math.round(summary.nutrition.protein)} max={tdee * 0.3 / 4} color="bg-blue-500" />
-            <MacroBar label="Carbs" value={Math.round(summary.nutrition.carbs)} max={tdee * 0.45 / 4} color="bg-yellow-500" />
-            <MacroBar label="Fat" value={Math.round(summary.nutrition.fat)} max={tdee * 0.25 / 9} color="bg-pink-500" />
+        <p className="text-xs text-ink-300 mb-5">{Math.round(calPct)}% of daily target</p>
+        {summary && tdee > 0 && (
+          <div className="grid grid-cols-3 gap-5 pt-4 border-t border-cream-100">
+            <MacroBar label="Protein" value={Math.round(summary.nutrition.protein)} max={Math.round(tdee * 0.30 / 4)} color="bg-navy-900" />
+            <MacroBar label="Carbs"   value={Math.round(summary.nutrition.carbs)}   max={Math.round(tdee * 0.45 / 4)} color="bg-teal-500" />
+            <MacroBar label="Fat"     value={Math.round(summary.nutrition.fat)}     max={Math.round(tdee * 0.25 / 9)} color="bg-cream-400" />
           </div>
         )}
       </div>
 
       {/* Recent Workouts */}
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Recent Workouts</h3>
-          <Link to="/workouts" className="text-sm text-orange-400 hover:underline">View all →</Link>
+      <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-display tracking-wide text-ink-900">RECENT WORKOUTS</h3>
+          <Link to="/workouts" className="text-xs text-teal-500 hover:text-teal-600 font-medium">View all →</Link>
         </div>
         {sessions?.length ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sessions.map(s => (
-              <div key={s.id} className="flex items-center justify-between bg-gray-800 rounded-xl px-4 py-3">
+              <div key={s.id} className="flex items-center justify-between bg-cream-50 rounded-xl px-4 py-3">
                 <div>
-                  <p className="font-medium text-white">{s.name || 'Workout'}</p>
-                  <p className="text-sm text-gray-400">{s.date} · {s.exercises_count} exercises</p>
+                  <p className="font-medium text-ink-900 text-sm">{s.name || 'Workout'}</p>
+                  <p className="text-xs text-ink-500 mt-0.5">{s.date} · {s.exercises_count} exercises</p>
                 </div>
-                <span className="text-sm text-orange-400">{Math.round(s.total_volume).toLocaleString()} kg</span>
+                <span className="text-sm text-teal-500 font-display font-medium">{Math.round(s.total_volume).toLocaleString()} kg</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 text-sm">No workouts yet. <Link to="/workouts" className="text-orange-400 hover:underline">Log your first one.</Link></p>
+          <p className="text-ink-500 text-sm">No workouts yet. <Link to="/workouts" className="text-teal-500 hover:text-teal-600">Log your first one.</Link></p>
         )}
       </div>
 
-      {/* BMI / TDEE */}
+      {/* Stats */}
       {user && (
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-          <h3 className="text-lg font-semibold text-white mb-4">Your Stats</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-6">
+          <h3 className="font-display tracking-wide text-ink-900 mb-5">YOUR STATS</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Weight', value: user.weight_kg ? `${user.weight_kg} kg` : '—' },
               { label: 'Height', value: user.height_cm ? `${user.height_cm} cm` : '—' },
               { label: 'BMI', value: user.bmi ?? '—' },
               { label: 'TDEE', value: user.tdee ? `${user.tdee} kcal` : '—' },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-800 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-white">{value}</p>
-                <p className="text-xs text-gray-400 mt-1">{label}</p>
+              <div key={label} className="bg-cream-50 rounded-xl p-4 text-center">
+                <p className="text-xl font-display text-ink-900">{value}</p>
+                <p className="text-xs text-ink-500 mt-1">{label}</p>
               </div>
             ))}
           </div>
-          <Link to="/profile" className="mt-4 inline-block text-sm text-orange-400 hover:underline">
+          <Link to="/profile" className="mt-4 inline-block text-xs text-teal-500 hover:text-teal-600">
             Update your profile →
           </Link>
         </div>
@@ -131,13 +138,13 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ label, value, icon, capitalize }) {
+function StatCard({ label, value, capitalize, accent }) {
   return (
-    <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800 flex items-center gap-4">
-      <span className="text-3xl">{icon}</span>
+    <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-5 flex items-center gap-4">
+      <div className={`w-1.5 h-10 ${accent} rounded-full flex-shrink-0`} />
       <div>
-        <p className={`text-xl font-bold text-white ${capitalize ? 'capitalize' : ''}`}>{value}</p>
-        <p className="text-sm text-gray-400">{label}</p>
+        <p className={`text-xl font-display text-ink-900 ${capitalize ? 'capitalize' : ''}`}>{value}</p>
+        <p className="text-xs text-ink-500 mt-0.5">{label}</p>
       </div>
     </div>
   )

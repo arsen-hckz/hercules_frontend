@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/axios'
@@ -15,6 +15,9 @@ export default function Profile() {
 function OwnProfile({ me, fetchMe }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const avatarInputRef = useRef(null)
 
   useEffect(() => {
     if (me) setForm({
@@ -31,32 +34,63 @@ function OwnProfile({ me, fetchMe }) {
     })
   }, [me])
 
+  function handleAvatarChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
   const mutation = useMutation({
-    mutationFn: () => api.patch('/auth/me/', form),
-    onSuccess: () => { fetchMe(); setEditing(false) },
+    mutationFn: () => {
+      const fd = new FormData()
+      Object.entries(form).forEach(([k, v]) => { if (v !== '') fd.append(k, v) })
+      if (avatarFile) fd.append('avatar', avatarFile)
+      return api.patch('/auth/me/', fd)
+    },
+    onSuccess: () => { fetchMe(); setEditing(false); setAvatarFile(null); setAvatarPreview(null) },
   })
 
   if (!me) return null
 
+  const avatarSrc = avatarPreview || me.avatar
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">My Profile</h2>
-        <button onClick={() => setEditing(!editing)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${editing ? 'bg-gray-700 text-white' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-          {editing ? 'Cancel' : 'Edit Profile'}
+        <h2 className="text-2xl font-display tracking-wide text-ink-900">MY PROFILE</h2>
+        <button onClick={() => { setEditing(!editing); setAvatarFile(null); setAvatarPreview(null) }}
+          className={`px-4 py-2 rounded-xl text-xs font-display tracking-widest ${
+            editing
+              ? 'bg-cream-200 text-ink-700 hover:bg-cream-300'
+              : 'bg-teal-500 text-white hover:bg-teal-600 shadow-[0_4px_12px_rgba(59,191,191,0.25)]'
+          }`}>
+          {editing ? 'CANCEL' : 'EDIT PROFILE'}
         </button>
       </div>
 
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-            {me.username[0].toUpperCase()}
+      <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-6">
+        {/* Avatar + basic info */}
+        <div className="flex items-center gap-5 mb-6">
+          <div className="relative flex-shrink-0">
+            {avatarSrc
+              ? <img src={avatarSrc} alt="" className="w-16 h-16 rounded-2xl object-cover" />
+              : <div className="w-16 h-16 rounded-2xl bg-navy-900 flex items-center justify-center text-white text-2xl font-display">{me.username[0].toUpperCase()}</div>
+            }
+            {editing && (
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl text-white text-xs font-medium opacity-0 hover:opacity-100"
+              >
+                Change
+              </button>
+            )}
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
           <div>
-            <p className="text-xl font-bold text-white">@{me.username}</p>
-            {me.full_name && <p className="text-gray-400">{me.full_name}</p>}
-            {me.bio && <p className="text-sm text-gray-400 mt-1">{me.bio}</p>}
+            <p className="text-xl font-display tracking-wide text-ink-900">@{me.username}</p>
+            {me.full_name && <p className="text-ink-500 text-sm mt-0.5">{me.full_name}</p>}
+            {me.bio && <p className="text-sm text-ink-500 mt-1">{me.bio}</p>}
           </div>
         </div>
 
@@ -68,59 +102,42 @@ function OwnProfile({ me, fetchMe }) {
                 ['weight_kg', 'Weight (kg)', 'number'], ['target_weight_kg', 'Target Weight (kg)', 'number']
               ].map(([key, label, type]) => (
                 <div key={key}>
-                  <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                  <label className="block text-xs text-ink-500 mb-1.5 uppercase tracking-wide">{label}</label>
                   <input type={type} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500" />
+                    className="w-full bg-cream-50 border border-cream-300 rounded-xl px-3 py-2.5 text-ink-900 text-sm focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15" />
                 </div>
               ))}
             </div>
 
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Bio</label>
+              <label className="block text-xs text-ink-500 mb-1.5 uppercase tracking-wide">Bio</label>
               <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500 resize-none" />
+                className="w-full bg-cream-50 border border-cream-300 rounded-xl px-3 py-2.5 text-ink-900 text-sm focus:outline-none focus:border-teal-500 resize-none" />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Gender</label>
-                <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500">
-                  <option value="">—</option>
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                  <option value="O">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Goal</label>
-                <select value={form.goal} onChange={e => setForm({ ...form, goal: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500">
-                  <option value="bulk">Bulk</option>
-                  <option value="cut">Cut</option>
-                  <option value="maintain">Maintain</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Activity</label>
-                <select value={form.activity_level} onChange={e => setForm({ ...form, activity_level: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500">
-                  <option value="sedentary">Sedentary</option>
-                  <option value="light">Light</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="active">Active</option>
-                  <option value="very_active">Very Active</option>
-                </select>
-              </div>
+              {[
+                { key: 'gender', label: 'Gender', options: [['', '—'], ['M', 'Male'], ['F', 'Female'], ['O', 'Other']] },
+                { key: 'goal', label: 'Goal', options: [['bulk', 'Bulk'], ['cut', 'Cut'], ['maintain', 'Maintain']] },
+                { key: 'activity_level', label: 'Activity', options: [['sedentary', 'Sedentary'], ['light', 'Light'], ['moderate', 'Moderate'], ['active', 'Active'], ['very_active', 'Very Active']] },
+              ].map(({ key, label, options }) => (
+                <div key={key}>
+                  <label className="block text-xs text-ink-500 mb-1.5 uppercase tracking-wide">{label}</label>
+                  <select value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
+                    className="w-full bg-cream-50 border border-cream-300 rounded-xl px-3 py-2.5 text-ink-900 text-sm focus:outline-none focus:border-teal-500">
+                    {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              ))}
             </div>
 
             <button onClick={() => mutation.mutate()} disabled={mutation.isPending}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-40">
-              {mutation.isPending ? 'Saving...' : 'Save Changes'}
+              className="w-full bg-teal-500 hover:bg-teal-600 text-white font-display tracking-widest py-3 rounded-xl shadow-[0_4px_12px_rgba(59,191,191,0.25)] disabled:opacity-40 text-sm">
+              {mutation.isPending ? 'SAVING...' : 'SAVE CHANGES'}
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'BMI', value: me.bmi ?? '—' },
               { label: 'TDEE', value: me.tdee ? `${me.tdee} kcal` : '—' },
@@ -131,9 +148,9 @@ function OwnProfile({ me, fetchMe }) {
               { label: 'Followers', value: me.followers_count ?? 0 },
               { label: 'Following', value: me.following_count ?? 0 },
             ].map(({ label, value, capitalize }) => (
-              <div key={label} className="bg-gray-800 rounded-xl p-3 text-center">
-                <p className={`text-lg font-bold text-white ${capitalize ? 'capitalize' : ''}`}>{value}</p>
-                <p className="text-xs text-gray-400">{label}</p>
+              <div key={label} className="bg-cream-50 rounded-xl p-3 text-center">
+                <p className={`text-lg font-display text-ink-900 ${capitalize ? 'capitalize' : ''}`}>{value}</p>
+                <p className="text-xs text-ink-500 mt-0.5">{label}</p>
               </div>
             ))}
           </div>
@@ -166,38 +183,45 @@ function UserProfile({ username, me }) {
   if (!profile) return null
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+    <div className="max-w-2xl mx-auto space-y-5">
+      <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(30,51,88,0.08)] p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-              {profile.username[0].toUpperCase()}
+            <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
+              {profile.avatar
+                ? <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-navy-900 flex items-center justify-center text-white text-2xl font-display">{profile.username[0].toUpperCase()}</div>
+              }
             </div>
             <div>
-              <p className="text-xl font-bold text-white">@{profile.username}</p>
-              {profile.bio && <p className="text-sm text-gray-400 mt-1">{profile.bio}</p>}
-              <div className="flex gap-4 mt-2 text-sm text-gray-400">
-                <span><strong className="text-white">{profile.followers_count}</strong> followers</span>
-                <span><strong className="text-white">{profile.following_count}</strong> following</span>
+              <p className="text-xl font-display tracking-wide text-ink-900">@{profile.username}</p>
+              {profile.bio && <p className="text-sm text-ink-500 mt-1">{profile.bio}</p>}
+              <div className="flex gap-4 mt-2 text-sm text-ink-500">
+                <span><strong className="text-ink-900">{profile.followers_count}</strong> followers</span>
+                <span><strong className="text-ink-900">{profile.following_count}</strong> following</span>
               </div>
             </div>
           </div>
           <button onClick={() => followMutation.mutate()}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${profile.is_following ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-            {profile.is_following ? 'Unfollow' : 'Follow'}
+            className={`px-4 py-2 rounded-xl text-xs font-display tracking-widest ${
+              profile.is_following
+                ? 'bg-cream-200 text-ink-700 hover:bg-cream-300'
+                : 'bg-teal-500 text-white hover:bg-teal-600 shadow-[0_4px_12px_rgba(59,191,191,0.25)]'
+            }`}>
+            {profile.is_following ? 'UNFOLLOW' : 'FOLLOW'}
           </button>
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-white">Posts</h3>
-      <div className="space-y-4">
+      <h3 className="font-display tracking-wide text-ink-900 px-1">POSTS</h3>
+      <div className="space-y-3">
         {posts?.map(post => (
-          <div key={post.id} className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
-            <p className="text-gray-200">{post.content}</p>
-            <p className="text-xs text-gray-500 mt-2">{new Date(post.created_at).toLocaleString()} · {post.likes_count} likes</p>
+          <div key={post.id} className="bg-white rounded-xl shadow-[0_2px_8px_rgba(30,51,88,0.06)] p-4">
+            <p className="text-ink-900 text-sm">{post.content}</p>
+            <p className="text-xs text-ink-300 mt-2">{new Date(post.created_at).toLocaleString()} · {post.likes_count} likes</p>
           </div>
         ))}
-        {!posts?.length && <p className="text-gray-500 text-sm">No posts yet.</p>}
+        {!posts?.length && <p className="text-ink-500 text-sm">No posts yet.</p>}
       </div>
     </div>
   )

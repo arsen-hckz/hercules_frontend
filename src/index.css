@@ -1,1 +1,44 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Oswald', sans-serif;
+
+  --color-navy-900: #1e3358;
+  --color-navy-800: #16294a;
+  --color-navy-700: #0f1e38;
+
+  --color-teal-500: #3bbfbf;
+  --color-teal-600: #2da8a8;
+  --color-teal-400: #55cece;
+  --color-teal-100: #e6f8f8;
+
+  --color-cream-50:  #f7f4ef;
+  --color-cream-100: #f0ece3;
+  --color-cream-200: #e8e3d9;
+  --color-cream-300: #ddd8cf;
+  --color-cream-400: #c8c1b4;
+
+  --color-ink-900: #1e3358;
+  --color-ink-700: #4a4438;
+  --color-ink-500: #7a7060;
+  --color-ink-300: #a09080;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f7f4ef;
+  color: #1e3358;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+* {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
