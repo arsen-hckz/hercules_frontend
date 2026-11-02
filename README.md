@@ -1,16 +1,35 @@
-# React + Vite
+# Hercules — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React single-page app for Hercules, a fitness and nutrition tracker: log
+workouts and track exercise progress, log meals with food search and a camera
+barcode scanner, view daily macros, follow other users and post to a social
+feed, and get notifications. UI in English and Greek.
 
-Currently, two official plugins are available:
+It talks to the Django REST API in the hercules_backend repo. There is no
+public deployment.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- React 19, React Router 7, Vite 8
+- Tailwind CSS 4
+- TanStack Query for server state, Zustand for auth and language state
+- axios with JWT auth (`src/api/axios.js`)
+- ZXing (`@zxing/browser`) for barcode scanning from the camera
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Pages
 
-## Expanding the ESLint configuration
+Dashboard, Workouts, Nutrition, Social, Profile, Notifications, Settings,
+Login, Register, Forgot password, Onboarding, and a staff Admin panel.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Running locally
+
+Requires Node.js and the backend running on http://localhost:8000. The Vite
+dev server proxies `/api` and `/media` to it (`vite.config.js`), so no
+environment variables are needed.
+
+```sh
+npm install
+npm run dev
+```
+
+Other scripts: `npm run build`, `npm run preview`, `npm run lint`.
